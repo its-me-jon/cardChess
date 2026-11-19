@@ -1,0 +1,218 @@
+@startuml
+title Card Chess Project
+
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "com.cardchess.model" {
+
+  class Board {
+    - rows: int
+    - columns: int
+    - units: UnitOnBoard[][]
+    + placeUnit(unit: UnitOnBoard, position: Position): void
+    + removeUnit(position: Position): UnitOnBoard
+    + isValidPosition(position: Position): boolean
+    + getUnitAt(position: Position): UnitOnBoard
+    + moveUnit(unit: UnitOnBoard, position: Position): void
+  }
+
+  abstract class Player {
+    - deck: List<Card>
+    - hand: List<Card>
+    - drawPile: List<Card>
+    - discardPile: List<Card>
+    + Player(deck: List<Card>)
+    + drawCard(numCards: int, conditions: List<Condition>): void
+    + retrieveDiscardedCard(card: Card): void
+  }
+
+  class HumanPlayer {
+    + takeTurn(controller: GameController): void
+  }
+
+  class CPUPlayer {
+    + takeTurn(controller: GameController): void
+  }
+
+  abstract class Card {
+    - displayName: String
+    - cardType: CardType
+    + Card(displayName: String, cardType: CardType)
+  }
+
+  enum CardType {
+    UNIT
+    ATTACK
+    SKILL
+  }
+
+  class UnitCard {
+    - health: int
+    - attacks: List<Attack>
+    - ability: Ability
+    + UnitCard(displayName: String, health: int)
+    + addAttack(attack: Attack): void
+    + addAbility(ability: Ability): void
+  }
+
+  class AttackCard {
+    - attack: Attack
+    + play(attacker: UnitOnBoard, target: UnitOnBoard): void
+  }
+
+  class SkillCard {
+    - description: String
+    - effects: List<Effect>
+    + SkillCard(displayName: String, effects: List<Effect>)
+    + execute(target: Unit): void
+  }
+
+  class Attack {
+    - displayName: String
+    - description: String
+    - damage: int
+    - effects: List<Effect>
+    + execute(target: Unit): void
+  }
+
+  class Ability {
+    - displayName: String
+    - description: String
+    - effects: List<Effect>
+  }
+
+  class Effect {
+    - type: EffectType
+    - value: int
+    + apply(): void
+  }
+
+  class Unit {
+    - maxHealth: int
+    - attacks: List<Attack>
+    - ability: Ability
+    + createInstance(owner: Player): Unit
+  }
+
+  class UnitOnBoard {
+    - id: int
+    - health: int
+    - position: Position
+    - owner: Player
+    - unit: Unit
+    + takeDamage(damage: int): void
+    + getPosition(): Position
+  }
+
+  class Position <<record>> {
+    - row: int
+    - column: int
+  }
+
+}
+
+package "com.cardchess.view" {
+
+  class GameLayout {
+    - player1Area: PlayerArea
+    - player2Area: PlayerArea
+    - boardView: BoardView
+  }
+
+  class PlayerArea {
+    - drawPile: PileView
+    - hand: HandView
+    - discardPile: PileView
+  }
+
+  class HandView {
+  }
+
+  abstract class PileView {
+  }
+
+  class DrawPileView {
+    - cardCount: int
+  }
+
+  class DiscardPileView {
+    - topCard: CardView
+  }
+
+  class CardView {
+    - card: Card
+  }
+
+  class BoardView {
+  }
+
+}
+
+package "com.cardchess.controller" {
+
+  class GameController {
+    - player1: Player
+    - player2: Player
+    - gameLayout: GameLayout
+  }
+
+}
+
+' Model Inheritance
+
+Player <|-- HumanPlayer
+Player <|-- CPUPlayer
+
+Card <|-- UnitCard
+Card <|-- AttackCard
+Card <|-- SkillCard
+
+' Model Relationships
+
+Card --> CardType : type
+
+Player "1" o-- "0..*" Unit : owns
+
+UnitCard *-- Unit
+AttackCard "1" *-- "1" Attack
+SkillCard "1" *-- "0..*" Effect
+
+Unit "1" o-- "1..*" Attack
+Unit "1" *-- "0..*" Ability
+Attack "1" *-- "0..*" Effect
+
+UnitOnBoard "1" *-- "1" Position : stores
+
+' View Inheritance
+
+DrawPileView --|> PileView
+DiscardPileView --|> PileView
+
+' View Composition
+
+GameLayout "1" *-- "2" PlayerArea
+GameLayout "1" *-- "1" BoardView
+
+PlayerArea "1" *-- "1" HandView
+PlayerArea "1" *-- "1" DrawPileView
+PlayerArea "1" *-- "1" DiscardPileView
+
+HandView "1" *-- "0..*" CardView
+DiscardPileView "1" *-- "0..1" CardView
+
+' View and Model Relationships
+
+CardView --> Card : displays
+HandView ..> Player : displays hand
+PileView ..> Player : displays pile
+BoardView ..> Board : displays
+
+' Controller relationships
+
+GameController --> Player : manages
+GameController --> Board : manages
+GameController --> GameLayout : coordinates
+
+
+@enduml
