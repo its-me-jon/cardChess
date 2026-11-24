@@ -1,0 +1,231 @@
+@startuml
+title Card Chess Project
+
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "com.cardchess.model" {
+
+  class Board {
+    - rows: int
+    - columns: int
+    - units: UnitOnBoard[][]
+    + getUnitAt(position: Position): UnitOnBoard
+    + placeUnit(unit: UnitOnBoard, position: Position): void
+    + removeUnit(position: Position): UnitOnBoard
+    + moveUnit(unit: UnitOnBoard, position: Position): void
+    + isValidPosition(position: Position): boolean
+  }
+
+  abstract class Player {
+    - deck: List<Card>
+    - hand: List<Card>
+    - drawPile: List<Card>
+    - discardPile: List<Card>
+    + Player(deck: List<Card>)
+    + drawCard(numCards: int, conditions: List<Condition>): void
+    + retrieveDiscardedCard(card: Card): void
+  }
+
+  class HumanPlayer {
+    + takeTurn(controller: GameController): void
+  }
+
+  class CPUPlayer {
+    + takeTurn(controller: GameController): void
+  }
+
+  abstract class Card {
+    - displayName: String
+    + Card(displayName: String)
+    + getDisplayName(): String
+  }
+
+  class UnitCard {
+    - unit: Unit
+    + UnitCard(displayName: String, unit: Unit)
+    + getUnit(): Unit
+  }
+
+  class AttackCard {
+    - attack: Attack
+    + AttackCard(displayName: String, attack: Attack)
+    + getAttack(): Attack
+  }
+
+  class SkillCard {
+    - skill: Skill
+    + SkillCard(displayName: String, description: String, effects: List<Effect>)
+    + getSkill(): Skill
+  }
+
+  class Attack {
+    - displayName: String
+    - description: String
+    - damage: int
+    - effects: List<Effect>
+  }
+
+  class Skill {
+    - displayName: String
+    - description: String
+    - effects: List<Effect>
+  }
+
+  class Ability {
+    - displayName: String
+    - description: String
+    - effects: List<Effect>
+  }
+
+  class Effect {
+    - type: EffectType
+    - value: int
+    + apply(): void
+  }
+
+  class Unit {
+    - displayName: String
+    - maxHealth: int
+    - attacks: List<Attack>
+    - ability: Ability
+    + createInstance(owner: Player, id: int, position: Position): UnitOnBoard
+    + getMaxHealth(): int
+  }
+
+  class UnitOnBoard {
+    - id: int
+    - health: int
+    - position: Position
+    - owner: Player
+    - unit: Unit
+    + UnitOnBoard(id: int, unit: Unit, owner: Player, position: Position)
+    + takeDamage(damage: int): void
+    + getPosition(): Position
+  }
+
+  class Position <<record>> {
+    - row: int
+    - column: int
+  }
+
+}
+
+package "com.cardchess.view" {
+
+  class GameLayout {
+    - player1Area: PlayerArea
+    - player2Area: PlayerArea
+    - boardView: BoardView
+  }
+
+  class PlayerArea {
+    - drawPile: DrawPileView
+    - hand: HandView
+    - discardPile: DiscardPileView
+  }
+
+  class HandView {
+  }
+
+  abstract class PileView {
+  }
+
+  class DrawPileView {
+    - cardCount: int
+  }
+
+  class DiscardPileView {
+    - topCard: CardView
+  }
+
+  class CardView {
+    - card: Card
+  }
+
+  class BoardView {
+  }
+
+}
+
+package "com.cardchess.controller" {
+
+  class GameController {
+    - player1: Player
+    - player2: Player
+    - currentPlayer: Player
+    - board: Board
+    - gameLayout: GameLayout
+    - nextUnitId: int
+    - turnNumber: int
+    - generateUnitId(): int
+    + createUnit(unit: Unit, owner: Player, position: Position): UnitOnBoard
+    + moveUnit(unit: UnitOnBoard, position: Position): void
+    + removeUnit(unit: UnitOnBoard): void
+    + attackUnit(attacker: UnitOnBoard, target: UnitOnBoard, attack: Attack): void
+    + playCard(player: Player, card: Card): void
+    + startTurn(player: Player): void
+    + endTurn(): void
+  }
+
+}
+
+' Model Inheritance
+
+Player <|-- HumanPlayer
+Player <|-- CPUPlayer
+
+Card <|-- UnitCard
+Card <|-- AttackCard
+Card <|-- SkillCard
+
+' Model Relationships
+
+UnitCard "1" *-- "1" Unit : defines
+AttackCard "1" *-- "1" Attack : defines
+SkillCard "1" *-- "0..*" Effect : contains
+
+Unit "1" o-- "0..*" Attack
+Unit "1" o-- "0..1" Ability
+
+Attack "1" *-- "0..*" Effect
+Ability "1" *-- "0..*" Effect
+SkillCard "1" *-- "0..*" Effect
+
+Player "1" o-- "0..*" UnitOnBoard : owns
+Board "1" -- "0..*" UnitOnBoard : contains
+
+UnitOnBoard "0..*" --> "1" Unit : instance of
+UnitOnBoard "1" *-- "1" Position : stores
+
+' View Inheritance
+
+DrawPileView --|> PileView
+DiscardPileView --|> PileView
+
+' View Composition
+
+GameLayout "1" *-- "2" PlayerArea
+GameLayout "1" *-- "1" BoardView
+
+PlayerArea "1" *-- "1" HandView
+PlayerArea "1" *-- "1" DrawPileView
+PlayerArea "1" *-- "1" DiscardPileView
+
+HandView "1" *-- "0..*" CardView
+DiscardPileView "1" *-- "0..1" CardView
+
+' View and Model Relationships
+
+CardView --> Card : displays
+HandView ..> Player : displays hand
+PileView ..> Player : displays pile
+BoardView ..> Board : displays
+
+' Controller relationships
+
+GameController --> Player : manages
+GameController --> Board : manages
+GameController --> GameLayout : coordinates
+
+@enduml
