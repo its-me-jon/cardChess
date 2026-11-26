@@ -9,36 +9,98 @@ package "com.cardchess.model" {
   class Board {
     - rows: int
     - columns: int
-    - units: UnitOnBoard[][]
-    + getUnitAt(position: Position): UnitOnBoard
-    + placeUnit(unit: UnitOnBoard, position: Position): void
-    + removeUnit(position: Position): UnitOnBoard
-    + moveUnit(unit: UnitOnBoard, position: Position): void
+    - units: UnitInstance[][]
+    + placeUnit(unit: UnitInstance, position: Position): void
+    + moveUnit(unit: UnitInstance, position: Position): void
+    + removeUnit(position: Position): UnitInstance
+    + getUnitAt(position: Position): UnitInstance
+    + containsUnit(unit: UnitInstance): boolean
     + isValidPosition(position: Position): boolean
   }
 
-  abstract class Player {
-    - deck: List<Card>
-    - hand: List<Card>
-    - drawPile: List<Card>
-    - discardPile: List<Card>
-    + Player(deck: List<Card>)
-    + drawCard(numCards: int, conditions: List<Condition>): void
-    + retrieveDiscardedCard(card: Card): void
+  interface GameAction
+
+  class MoveUnitAction {
+    - unit: UnitInstance
+    - destination: Position
+    + MoveUnitAction(unit: UnitInstance, destination: Position)
   }
 
-  class HumanPlayer {
-    + takeTurn(controller: GameController): void
+  class AttackUnitAction {
+    - attacker: UnitInstance
+    - target: UnitInstance
+    - attack: Attack
+    + AttackUnitAction(attacker: UnitInstance, target: UnitInstance, attack: Attack)
   }
 
-  class CPUPlayer {
-    + takeTurn(controller: GameController): void
+  class PlayCardAction {
+    - card: CardInstance
+    + PlayCardAction(card: CardInstance)
+  }
+
+  class DrawCardAction {
+    - amount: int
+    + DrawCardAction(amount: int)
+  }
+
+  class EndTurnAction
+
+  class GameState {
+    - board: Board
+    - players: List<Player>
+    - currentPlayer: Player
+    - turnNumber: int
+  }
+
+  class Player {
+    - deckList: DeckList
+    - hand: List<CardInstance>
+    - drawPile: List<CardInstance>
+    - discardPile: List<CardInstance>
+    - units: List<UnitInstance>
+    - agent: PlayerAgent
+    + getAgent(): PlayerAgent
+    + setAgent(agent: PlayerAgent): void
+    + addUnit(unit: UnitInstance): void
+    + addCardToHand(card: CardInstance): void
+    + addCardToDrawPile(card: CardInstance): void
+    + addCardToDiscardPile(card: CardInstance): void
+    + moveCardToHand(card: CardInstance): void
+    + moveCardToDrawPile(card: CardInstance): void
+    + moveCardToDiscardPile(card: CardInstance): void
+  }
+
+  interface PlayerAgent {
+    + chooseAction(gameState: GameState, player: Player): CompletableFuture<GameAction>
+  }
+
+  class HumanPlayerAgent {
+    - pendingAction: CompletableFuture<GameAction>
+    + chooseAction(gameState: GameState, player: Player): CompletableFuture<GameAction>
+    + submitAction(action: GameAction): void
+    + cancelAction(): void
+  }
+
+  class CPUPlayerAgent
+
+  class DeckList {
+    - cards: List<Card>
+    - MAX_SIZE: int = 30
   }
 
   abstract class Card {
     - displayName: String
     + Card(displayName: String)
     + getDisplayName(): String
+    + createInstance(id: int): CardInstance
+  }
+
+  class CardInstance {
+    - id: int
+    - card: Card
+    - owner: Player
+    ~ CardInstance(id: int, card: Card)
+    ~ setOwner(owner: Player): void
   }
 
   class UnitCard {
@@ -55,7 +117,7 @@ package "com.cardchess.model" {
 
   class SkillCard {
     - skill: Skill
-    + SkillCard(displayName: String, description: String, effects: List<Effect>)
+    + SkillCard(displayName: String, skill: Skill)
     + getSkill(): Skill
   }
 
@@ -81,27 +143,48 @@ package "com.cardchess.model" {
   class Effect {
     - type: EffectType
     - value: int
-    + apply(): void
+    + apply(context: EffectContext): void
+  }
+
+  class EffectContext {
+    - gameState: GameState
+    - source: UnitInstance
+    - targets: List<UnitInstance>
+    - sourcePlayer: Player
+    + EffectContext(gameState: GameState, source: UnitInstance, targets: List<UnitInstance>)
+    + getGameState(): GameState
+    + getSource(): UnitInstance
+    + getTargets(): List<UnitInstance>
+    + getSourcePlayer(): Player
   }
 
   class Unit {
     - displayName: String
     - maxHealth: int
     - attacks: List<Attack>
+    - skills: List<Skill>
     - ability: Ability
-    + createInstance(owner: Player, id: int, position: Position): UnitOnBoard
+    + createInstance(id: int): UnitInstance
     + getMaxHealth(): int
   }
 
-  class UnitOnBoard {
+  class UnitInstance {
     - id: int
     - health: int
     - position: Position
     - owner: Player
     - unit: Unit
-    + UnitOnBoard(id: int, unit: Unit, owner: Player, position: Position)
-    + takeDamage(damage: int): void
+    ~ UnitInstance(id: int, unit: Unit)
+    ~ setOwner(owner: Player): void
     + getPosition(): Position
+    ~ setPosition(position: Position): void
+    + getHealth(): int
+    + getOwner(): Player
+    + getUnit(): Unit
+    + getId(): int
+    + isAlive(): boolean
+    + takeDamage(damage: int): void
+    + heal(health: int): void
   }
 
   class Position <<record>> {
@@ -140,40 +223,33 @@ package "com.cardchess.view" {
   }
 
   class CardView {
-    - card: Card
+    - card: CardInstance
   }
 
-  class BoardView {
-  }
+  class BoardView
 
 }
 
 package "com.cardchess.controller" {
 
   class GameController {
-    - player1: Player
-    - player2: Player
-    - currentPlayer: Player
-    - board: Board
-    - gameLayout: GameLayout
+    - gameState: GameState
     - nextUnitId: int
-    - turnNumber: int
-    - generateUnitId(): int
-    + createUnit(unit: Unit, owner: Player, position: Position): UnitOnBoard
-    + moveUnit(unit: UnitOnBoard, position: Position): void
-    + removeUnit(unit: UnitOnBoard): void
-    + attackUnit(attacker: UnitOnBoard, target: UnitOnBoard, attack: Attack): void
-    + playCard(player: Player, card: Card): void
-    + startTurn(player: Player): void
-    + endTurn(): void
+    - nextCardId: int
+    + generateUnitId(): int
+    + generateCardId(): int
+    + startTurn(): void
+    + submitAction(player: Player, action: GameAction): void
+    - executeAction(action: GameAction): void
+    - checkGameOver(): boolean
   }
 
 }
 
 ' Model Inheritance
 
-Player <|-- HumanPlayer
-Player <|-- CPUPlayer
+PlayerAgent <|.. HumanPlayerAgent
+PlayerAgent <|.. CPUPlayerAgent
 
 Card <|-- UnitCard
 Card <|-- AttackCard
@@ -181,22 +257,44 @@ Card <|-- SkillCard
 
 ' Model Relationships
 
-UnitCard "1" *-- "1" Unit : defines
-AttackCard "1" *-- "1" Attack : defines
-SkillCard "1" *-- "0..*" Effect : contains
+GameAction <|.. MoveUnitAction
+GameAction <|.. AttackUnitAction
+GameAction <|.. PlayCardAction
+GameAction <|.. DrawCardAction
+GameAction <|.. EndTurnAction
+
+GameState "1" *-- "1" Board : board
+GameState "1" *-- "2" Player : players
+GameState "1" --> "1" Player : currentPlayer
+
+UnitCard --> Unit : references
+AttackCard --> Attack : references
+SkillCard --> Skill : references
 
 Unit "1" o-- "0..*" Attack
+Unit "1" o-- "0..*" Skill
 Unit "1" o-- "0..1" Ability
 
 Attack "1" *-- "0..*" Effect
 Ability "1" *-- "0..*" Effect
-SkillCard "1" *-- "0..*" Effect
+Skill "1" *-- "0..*" Effect
 
-Player "1" o-- "0..*" UnitOnBoard : owns
-Board "1" -- "0..*" UnitOnBoard : contains
+EffectContext --> GameState
+EffectContext --> UnitInstance
+EffectContext --> Player
 
-UnitOnBoard "0..*" --> "1" Unit : instance of
-UnitOnBoard "1" *-- "1" Position : stores
+Effect ..> EffectContext : uses
+
+DeckList "1" o-- "0..30" Card : definitions
+Player "1" *-- "1" DeckList : deckList
+Player "1" *-- "0..*" CardInstance : owns
+
+Player "1" *-- "0..*" UnitInstance : owns
+Board "0..1" -- "0..*" UnitInstance : contains
+
+CardInstance "0..*" --> "1" Card : instance of
+UnitInstance "0..*" --> "1" Unit : instance of
+UnitInstance "1" *-- "0..1" Position : stores
 
 ' View Inheritance
 
@@ -217,15 +315,16 @@ DiscardPileView "1" *-- "0..1" CardView
 
 ' View and Model Relationships
 
-CardView --> Card : displays
+CardView --> CardInstance : displays
 HandView ..> Player : displays hand
 PileView ..> Player : displays pile
 BoardView ..> Board : displays
 
 ' Controller relationships
 
-GameController --> Player : manages
-GameController --> Board : manages
 GameController --> GameLayout : coordinates
+GameController --> GameState : manages
+GameController --> Player : manages
+Player --> PlayerAgent : controlled by
 
 @enduml

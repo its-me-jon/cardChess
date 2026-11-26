@@ -1,0 +1,56 @@
+@startuml
+title Card Chess - View
+
+skinparam classAttributeIconSize 0
+hide empty members
+top to bottom direction
+
+class GameLayout {
+    - player1Area: PlayerArea
+    - player2Area: PlayerArea
+    - boardView: BoardView
+}
+
+class PlayerArea {
+    - drawPile: DrawPileView
+    - hand: HandView
+    - discardPile: DiscardPileView
+}
+
+class HandView
+
+abstract class PileView
+
+class DrawPileView {
+    - cardCount: int
+}
+
+class DiscardPileView {
+    - topCard: CardView
+}
+
+class CardView {
+    - card: CardInstance
+}
+
+class BoardView
+
+GameLayout "1" *-- "2" PlayerArea
+GameLayout "1" *-- "1" BoardView
+
+PlayerArea "1" *-- "1" HandView
+PlayerArea "1" *-- "1" DrawPileView
+PlayerArea "1" *-- "1" DiscardPileView
+
+DrawPileView --|> PileView
+DiscardPileView --|> PileView
+
+HandView "1" *-- "0..*" CardView
+DiscardPileView "1" *-- "0..1" CardView
+
+CardView --> CardInstance : displays
+HandView ..> Player : displays hand
+PileView ..> Player : displays pile
+BoardView ..> Board : displays
+
+@enduml

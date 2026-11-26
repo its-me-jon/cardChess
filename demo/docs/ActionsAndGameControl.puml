@@ -1,0 +1,97 @@
+@startuml
+title Card Chess - Actions and Game Control
+
+skinparam classAttributeIconSize 0
+hide empty members
+left to right direction
+
+interface GameAction
+
+class MoveUnitAction {
+    - unit: UnitInstance
+    - destination: Position
+    + MoveUnitAction(unit: UnitInstance, destination: Position)
+}
+
+class AttackUnitAction {
+    - attacker: UnitInstance
+    - target: UnitInstance
+    - attack: Attack
+    + AttackUnitAction(attacker: UnitInstance, target: UnitInstance, attack: Attack)
+}
+
+class PlayCardAction {
+    - card: CardInstance
+    + PlayCardAction(card: CardInstance)
+}
+
+class DrawCardAction {
+    - amount: int
+    + DrawCardAction(amount: int)
+}
+
+class EndTurnAction
+
+interface PlayerAgent {
+    + chooseAction(gameState: GameState, player: Player): CompletableFuture<GameAction>
+}
+
+class HumanPlayerAgent {
+    - pendingAction: CompletableFuture<GameAction>
+    + chooseAction(gameState: GameState, player: Player): CompletableFuture<GameAction>
+    + submitAction(action: GameAction): void
+    + cancelAction(): void
+}
+
+class CPUPlayerAgent
+
+class GameController {
+    - gameState: GameState
+    - nextUnitId: int
+    - nextCardId: int
+    + startTurn(): void
+    + submitAction(player: Player, action: GameAction): void
+    - executeAction(action: GameAction): void
+    - checkGameOver(): boolean
+    - generateUnitId(): int
+    - generateCardId(): int
+}
+
+class EffectContext {
+    - gameState: GameState
+    - source: UnitInstance
+    - targets: List<UnitInstance>
+    - sourcePlayer: Player
+    + EffectContext(gameState: GameState, source: UnitInstance, targets: List<UnitInstance>)
+    + getGameState(): GameState
+    + getSource(): UnitInstance
+    + getTargets(): List<UnitInstance>
+    + getSourcePlayer(): Player
+}
+
+class Effect {
+    + apply(context: EffectContext): void
+}
+
+GameAction <|.. MoveUnitAction
+GameAction <|.. AttackUnitAction
+GameAction <|.. PlayCardAction
+GameAction <|.. DrawCardAction
+GameAction <|.. EndTurnAction
+
+PlayerAgent <|.. HumanPlayerAgent
+PlayerAgent <|.. CPUPlayerAgent
+
+Player --> PlayerAgent : controlled by
+
+GameController --> GameState : manages
+GameController --> Player : manages
+GameController ..> GameAction : executes
+GameController ..> EffectContext : creates
+
+Effect ..> EffectContext : uses
+EffectContext --> GameState
+EffectContext --> UnitInstance
+EffectContext --> Player
+
+@enduml

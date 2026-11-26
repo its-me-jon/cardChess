@@ -1,0 +1,76 @@
+@startuml
+title Card Chess - Core Game Model
+
+skinparam classAttributeIconSize 0
+hide empty members
+left to right direction
+
+class GameState {
+    - board: Board
+    - players: List<Player>
+    - currentPlayer: Player
+    - turnNumber: int
+}
+
+class Player {
+    - deckList: DeckList
+    - hand: List<CardInstance>
+    - drawPile: List<CardInstance>
+    - discardPile: List<CardInstance>
+    - units: List<UnitInstance>
+    - agent: PlayerAgent
+    + addUnit(unit: UnitInstance): void
+    + addCardToHand(card: CardInstance): void
+    + addCardToDrawPile(card: CardInstance): void
+    + addCardToDiscardPile(card: CardInstance): void
+    + moveCardToHand(card: CardInstance): void
+    + moveCardToDrawPile(card: CardInstance): void
+    + moveCardToDiscardPile(card: CardInstance): void
+}
+
+class Board {
+    - rows: int
+    - columns: int
+    - units: UnitInstance[][]
+    + placeUnit(unit: UnitInstance, position: Position): void
+    + moveUnit(unit: UnitInstance, position: Position): void
+    + removeUnit(position: Position): UnitInstance
+    + getUnitAt(position: Position): UnitInstance
+    + containsUnit(unit: UnitInstance): boolean
+    + isValidPosition(position: Position): boolean
+}
+
+class UnitInstance {
+    - id: int
+    - health: int
+    - position: Position
+    - owner: Player
+    - unit: Unit
+    ~ UnitInstance(id: int, unit: Unit)
+    ~ setOwner(owner: Player): void
+    ~ setPosition(position: Position): void
+    + getPosition(): Position
+    + getHealth(): int
+    + getOwner(): Player
+    + getUnit(): Unit
+    + getId(): int
+    + isAlive(): boolean
+    + takeDamage(damage: int): void
+    + heal(health: int): void
+}
+
+class Position <<record>> {
+    - row: int
+    - column: int
+}
+
+GameState "1" *-- "1" Board : board
+GameState "1" *-- "2" Player : players
+GameState "1" --> "1" Player : currentPlayer
+
+Player "1" *-- "0..*" UnitInstance : owns
+Board "0..1" -- "0..*" UnitInstance : contains
+
+Player --> PlayerAgent : uses
+
+@enduml

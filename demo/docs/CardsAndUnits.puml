@@ -1,0 +1,107 @@
+@startuml
+title Card Chess - Cards and Units
+
+skinparam classAttributeIconSize 0
+hide empty members
+left to right direction
+
+class DeckList {
+    - cards: List<Card>
+    - MAX_SIZE: int = 30
+    + addCard(card: Card): void
+    + removeCard(card: Card): void
+    + isValid(): boolean
+}
+
+abstract class Card {
+    - displayName: String
+    + Card(displayName: String)
+    + getDisplayName(): String
+    + createInstance(id: int): CardInstance
+}
+
+class CardInstance {
+    - id: int
+    - card: Card
+    - owner: Player
+    ~ CardInstance(id: int, card: Card)
+    ~ setOwner(owner: Player): void
+}
+
+class UnitCard {
+    - unit: Unit
+    + UnitCard(displayName: String, unit: Unit)
+    + getUnit(): Unit
+}
+
+class AttackCard {
+    - attack: Attack
+    + AttackCard(displayName: String, attack: Attack)
+    + getAttack(): Attack
+}
+
+class SkillCard {
+    - skill: Skill
+    + SkillCard(displayName: String, skill: Skill)
+    + getSkill(): Skill
+}
+
+class Unit {
+    - displayName: String
+    - maxHealth: int
+    - attacks: List<Attack>
+    - skills: List<Skill>
+    - ability: Ability
+    + createInstance(id: int): UnitInstance
+    + getMaxHealth(): int
+}
+
+class Attack {
+    - displayName: String
+    - description: String
+    - damage: int
+    - effects: List<Effect>
+}
+
+class Skill {
+    - displayName: String
+    - description: String
+    - effects: List<Effect>
+}
+
+class Ability {
+    - displayName: String
+    - description: String
+    - effects: List<Effect>
+}
+
+class Effect {
+    - type: EffectType
+    - value: int
+    + apply(context: EffectContext): void
+}
+
+Player "1" *-- "1" DeckList : deckList
+DeckList "1" o-- "0..30" Card : definitions
+
+Card <|-- UnitCard
+Card <|-- AttackCard
+Card <|-- SkillCard
+
+CardInstance "0..*" --> "1" Card : instance of
+
+UnitCard --> Unit : references
+AttackCard --> Attack : references
+SkillCard --> Skill : references
+
+Unit "1" o-- "0..*" Attack
+Unit "1" o-- "0..*" Skill
+Unit "1" o-- "0..1" Ability
+
+Attack "1" *-- "0..*" Effect
+Skill "1" *-- "0..*" Effect
+Ability "1" *-- "0..*" Effect
+
+UnitInstance "0..*" --> "1" Unit : instance of
+
+@enduml
