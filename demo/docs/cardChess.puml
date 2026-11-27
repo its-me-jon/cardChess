@@ -1,232 +1,53 @@
 @startuml
 title Card Chess Project
 
+left to right direction
+
 skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
 hide empty members
-
-package "com.cardchess.model" {
-
-  class Board {
-    - rows: int
-    - columns: int
-    - units: UnitInstance[][]
-    + placeUnit(unit: UnitInstance, position: Position): void
-    + moveUnit(unit: UnitInstance, position: Position): void
-    + removeUnit(position: Position): UnitInstance
-    + getUnitAt(position: Position): UnitInstance
-    + containsUnit(unit: UnitInstance): boolean
-    + isValidPosition(position: Position): boolean
-  }
-
-  interface GameAction
-
-  class MoveUnitAction {
-    - unit: UnitInstance
-    - destination: Position
-    + MoveUnitAction(unit: UnitInstance, destination: Position)
-  }
-
-  class AttackUnitAction {
-    - attacker: UnitInstance
-    - target: UnitInstance
-    - attack: Attack
-    + AttackUnitAction(attacker: UnitInstance, target: UnitInstance, attack: Attack)
-  }
-
-  class PlayCardAction {
-    - card: CardInstance
-    + PlayCardAction(card: CardInstance)
-  }
-
-  class DrawCardAction {
-    - amount: int
-    + DrawCardAction(amount: int)
-  }
-
-  class EndTurnAction
-
-  class GameState {
-    - board: Board
-    - players: List<Player>
-    - currentPlayer: Player
-    - turnNumber: int
-  }
-
-  class Player {
-    - deckList: DeckList
-    - hand: List<CardInstance>
-    - drawPile: List<CardInstance>
-    - discardPile: List<CardInstance>
-    - units: List<UnitInstance>
-    - agent: PlayerAgent
-    + getAgent(): PlayerAgent
-    + setAgent(agent: PlayerAgent): void
-    + addUnit(unit: UnitInstance): void
-    + addCardToHand(card: CardInstance): void
-    + addCardToDrawPile(card: CardInstance): void
-    + addCardToDiscardPile(card: CardInstance): void
-    + moveCardToHand(card: CardInstance): void
-    + moveCardToDrawPile(card: CardInstance): void
-    + moveCardToDiscardPile(card: CardInstance): void
-  }
-
-  interface PlayerAgent {
-    + chooseAction(gameState: GameState, player: Player): CompletableFuture<GameAction>
-  }
-
-  class HumanPlayerAgent {
-    - pendingAction: CompletableFuture<GameAction>
-    + chooseAction(gameState: GameState, player: Player): CompletableFuture<GameAction>
-    + submitAction(action: GameAction): void
-    + cancelAction(): void
-  }
-
-  class CPUPlayerAgent
-
-  class DeckList {
-    - cards: List<Card>
-    - MAX_SIZE: int = 30
-  }
-
-  abstract class Card {
-    - displayName: String
-    + Card(displayName: String)
-    + getDisplayName(): String
-    + createInstance(id: int): CardInstance
-  }
-
-  class CardInstance {
-    - id: int
-    - card: Card
-    - owner: Player
-    ~ CardInstance(id: int, card: Card)
-    ~ setOwner(owner: Player): void
-  }
-
-  class UnitCard {
-    - unit: Unit
-    + UnitCard(displayName: String, unit: Unit)
-    + getUnit(): Unit
-  }
-
-  class AttackCard {
-    - attack: Attack
-    + AttackCard(displayName: String, attack: Attack)
-    + getAttack(): Attack
-  }
-
-  class SkillCard {
-    - skill: Skill
-    + SkillCard(displayName: String, skill: Skill)
-    + getSkill(): Skill
-  }
-
-  class Attack {
-    - displayName: String
-    - description: String
-    - damage: int
-    - effects: List<Effect>
-  }
-
-  class Skill {
-    - displayName: String
-    - description: String
-    - effects: List<Effect>
-  }
-
-  class Ability {
-    - displayName: String
-    - description: String
-    - effects: List<Effect>
-  }
-
-  class Effect {
-    - type: EffectType
-    - value: int
-    + apply(context: EffectContext): void
-  }
-
-  class EffectContext {
-    - gameState: GameState
-    - source: UnitInstance
-    - targets: List<UnitInstance>
-    - sourcePlayer: Player
-    + EffectContext(gameState: GameState, source: UnitInstance, targets: List<UnitInstance>)
-    + getGameState(): GameState
-    + getSource(): UnitInstance
-    + getTargets(): List<UnitInstance>
-    + getSourcePlayer(): Player
-  }
-
-  class Unit {
-    - displayName: String
-    - maxHealth: int
-    - attacks: List<Attack>
-    - skills: List<Skill>
-    - ability: Ability
-    + createInstance(id: int): UnitInstance
-    + getMaxHealth(): int
-  }
-
-  class UnitInstance {
-    - id: int
-    - health: int
-    - position: Position
-    - owner: Player
-    - unit: Unit
-    ~ UnitInstance(id: int, unit: Unit)
-    ~ setOwner(owner: Player): void
-    + getPosition(): Position
-    ~ setPosition(position: Position): void
-    + getHealth(): int
-    + getOwner(): Player
-    + getUnit(): Unit
-    + getId(): int
-    + isAlive(): boolean
-    + takeDamage(damage: int): void
-    + heal(health: int): void
-  }
-
-  class Position <<record>> {
-    - row: int
-    - column: int
-  }
-
-}
 
 package "com.cardchess.view" {
 
-  class GameLayout {
-    - player1Area: PlayerArea
-    - player2Area: PlayerArea
-    - boardView: BoardView
+  ' Main Game Layout
+
+  together {
+    class GameLayout {
+      - player1Area: PlayerArea
+      - player2Area: PlayerArea
+      - boardView: BoardView
+    }
+
+    class PlayerArea {
+      - drawPile: DrawPileView
+      - hand: HandView
+      - discardPile: DiscardPileView
+    }
+
+    class BoardView
   }
 
-  class PlayerArea {
-    - drawPile: DrawPileView
-    - hand: HandView
-    - discardPile: DiscardPileView
-  }
+  ' Card and Pile Views
 
-  class HandView {
-  }
+  together {
+    class HandView {
+    }
 
-  abstract class PileView {
-  }
+    abstract class PileView {
+    }
 
-  class DrawPileView {
-    - cardCount: int
-  }
+    class DrawPileView {
+      - cardCount: int
+    }
 
-  class DiscardPileView {
-    - topCard: CardView
-  }
+    class DiscardPileView {
+      - topCard: CardView
+    }
 
-  class CardView {
-    - card: CardInstance
+    class CardView {
+      - card: CardInstance
+    }
   }
-
-  class BoardView
 
 }
 
@@ -236,12 +57,194 @@ package "com.cardchess.controller" {
     - gameState: GameState
     - nextUnitId: int
     - nextCardId: int
-    + generateUnitId(): int
-    + generateCardId(): int
     + startTurn(): void
     + submitAction(player: Player, action: GameAction): void
     - executeAction(action: GameAction): void
     - checkGameOver(): boolean
+  }
+
+}
+
+package "com.cardchess.model" {
+
+  ' Game State and Board
+
+  together {
+    class GameState {
+      - board: Board
+      - players: List<Player>
+      - currentPlayer: Player
+      - turnNumber: int
+    }
+
+    class Player {
+      - deckList: DeckList
+      - hand: List<CardInstance>
+      - drawPile: List<CardInstance>
+      - discardPile: List<CardInstance>
+      - units: List<UnitInstance>
+      - agent: PlayerAgent
+    }
+
+    class Board {
+      - rows: int
+      - columns: int
+      - units: UnitInstance[][]
+      + placeUnit(unit: UnitInstance, position: Position): void
+      + moveUnit(unit: UnitInstance, position: Position): void
+      + removeUnit(position: Position): UnitInstance
+      + getUnitAt(position: Position): UnitInstance
+      + containsUnit(unit: UnitInstance): boolean
+      + isValidPosition(position: Position): boolean
+    }
+
+    class Position <<record>> {
+      - row: int
+      - column: int
+    }
+  }
+
+  ' Actions
+
+  together {
+    interface GameAction
+
+    class MoveUnitAction {
+      - unit: UnitInstance
+      - destination: Position
+      + MoveUnitAction(unit: UnitInstance, destination: Position)
+    }
+
+    class AttackUnitAction {
+      - attacker: UnitInstance
+      - target: UnitInstance
+      - attack: Attack
+      + AttackUnitAction(attacker: UnitInstance, target: UnitInstance, attack: Attack)
+    }
+
+    class PlayCardAction {
+      - card: CardInstance
+      + PlayCardAction(card: CardInstance)
+    }
+
+    class DrawCardAction {
+      - amount: int
+      + DrawCardAction(amount: int)
+    }
+
+    class EndTurnAction {
+      + EndTurnAction()
+    }
+  }
+
+  ' Player Agents
+
+  together {
+    interface PlayerAgent {
+      + chooseAction(gameState: GameState, player: Player): CompletableFuture<GameAction>
+    }
+
+    class HumanPlayerAgent {
+      - pendingAction: CompletableFuture<GameAction>
+      + chooseAction(gameState: GameState, player: Player): CompletableFuture<GameAction>
+      + submitAction(action: GameAction): void
+      + cancelAction(): void
+    }
+
+    class CPUPlayerAgent
+  }
+
+  ' Cards and Decks
+
+  together {
+    class DeckList {
+      - cards: List<Card>
+      - MAX_SIZE: int = 30
+    }
+
+    abstract class Card {
+      - displayName: String
+      + createInstance(id: int): CardInstance
+    }
+
+    class CardInstance {
+      - id: int
+      - card: Card
+      - owner: Player
+    }
+
+    class UnitCard {
+      - unit: Unit
+    }
+
+    class AttackCard {
+      - attack: Attack
+    }
+
+    class SkillCard {
+      - skill: Skill
+    }
+  }
+
+  ' Units and Effects
+
+  together {
+    class Unit {
+      - displayName: String
+      - maxHealth: int
+      - attacks: List<Attack>
+      - skills: List<Skill>
+      - ability: Ability
+      + createInstance(id: int): UnitInstance
+    }
+
+    class UnitInstance {
+      - id: int
+      - health: int
+      - position: Position
+      - owner: Player
+      - unit: Unit
+      + getPosition(): Position
+      + getHealth(): int
+      + getOwner(): Player
+      + getUnit(): Unit
+      + getId(): int
+      + isAlive(): boolean
+      + takeDamage(damage: int): void
+      + heal(health: int): void
+    }
+
+    class Attack {
+      - displayName: String
+      - description: String
+      - damage: int
+      - effects: List<Effect>
+    }
+
+    class Skill {
+      - displayName: String
+      - description: String
+      - effects: List<Effect>
+    }
+
+    class Ability {
+      - displayName: String
+      - description: String
+      - effects: List<Effect>
+    }
+
+    class Effect {
+      - type: EffectType
+      - value: int
+      + apply(context: EffectContext): void
+    }
+
+    class EffectContext {
+      - gameState: GameState
+      - source: UnitInstance
+      - targets: List<UnitInstance>
+      - sourcePlayer: Player
+    }
   }
 
 }
@@ -255,46 +258,57 @@ Card <|-- UnitCard
 Card <|-- AttackCard
 Card <|-- SkillCard
 
-' Model Relationships
-
 GameAction <|.. MoveUnitAction
 GameAction <|.. AttackUnitAction
 GameAction <|.. PlayCardAction
 GameAction <|.. DrawCardAction
 GameAction <|.. EndTurnAction
 
+' Model Relationships
+
+' Game State and Board
+
 GameState "1" *-- "1" Board : board
 GameState "1" *-- "2" Player : players
 GameState "1" --> "1" Player : currentPlayer
 
+Player "1" *-- "1" DeckList : deckList
+Player "1" *-- "0..*" CardInstance : owns
+Player "1" *-- "0..*" UnitInstance : owns
+
+Board "0..1" -- "0..*" UnitInstance : contains
+
+' Player Agents
+
+Player --> PlayerAgent : controlled by
+
+' Cards and Decks
+
+DeckList "1" o-- "0..30" Card : definitions
+
+CardInstance "0..*" --> "1" Card : instance of
+
 UnitCard --> Unit : references
 AttackCard --> Attack : references
 SkillCard --> Skill : references
+
+' Units and Effects
+
+UnitInstance "0..*" --> "1" Unit : instance of
 
 Unit "1" o-- "0..*" Attack
 Unit "1" o-- "0..*" Skill
 Unit "1" o-- "0..1" Ability
 
 Attack "1" *-- "0..*" Effect
-Ability "1" *-- "0..*" Effect
 Skill "1" *-- "0..*" Effect
+Ability "1" *-- "0..*" Effect
+
+Effect ..> EffectContext : uses
 
 EffectContext --> GameState
 EffectContext --> UnitInstance
 EffectContext --> Player
-
-Effect ..> EffectContext : uses
-
-DeckList "1" o-- "0..30" Card : definitions
-Player "1" *-- "1" DeckList : deckList
-Player "1" *-- "0..*" CardInstance : owns
-
-Player "1" *-- "0..*" UnitInstance : owns
-Board "0..1" -- "0..*" UnitInstance : contains
-
-CardInstance "0..*" --> "1" Card : instance of
-UnitInstance "0..*" --> "1" Unit : instance of
-UnitInstance "1" *-- "0..1" Position : stores
 
 ' View Inheritance
 
@@ -320,11 +334,12 @@ HandView ..> Player : displays hand
 PileView ..> Player : displays pile
 BoardView ..> Board : displays
 
-' Controller relationships
+' Controller Relationships
 
-GameController --> GameLayout : coordinates
 GameController --> GameState : manages
 GameController --> Player : manages
-Player --> PlayerAgent : controlled by
+GameController --> GameLayout : coordinates
+GameController ..> GameAction : executes
+GameController ..> EffectContext : creates
 
 @enduml

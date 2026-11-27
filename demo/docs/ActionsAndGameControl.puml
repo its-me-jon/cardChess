@@ -1,51 +1,19 @@
 @startuml
-title Card Chess - Actions and Game Control
+title Actions and Game Control
 
-skinparam classAttributeIconSize 0
-hide empty members
 left to right direction
 
-interface GameAction
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+hide empty members
 
-class MoveUnitAction {
-    - unit: UnitInstance
-    - destination: Position
-    + MoveUnitAction(unit: UnitInstance, destination: Position)
+package "com.cardchess.view" {
+    class GameLayout
 }
 
-class AttackUnitAction {
-    - attacker: UnitInstance
-    - target: UnitInstance
-    - attack: Attack
-    + AttackUnitAction(attacker: UnitInstance, target: UnitInstance, attack: Attack)
-}
+package "com.cardchess.controller" {
 
-class PlayCardAction {
-    - card: CardInstance
-    + PlayCardAction(card: CardInstance)
-}
-
-class DrawCardAction {
-    - amount: int
-    + DrawCardAction(amount: int)
-}
-
-class EndTurnAction
-
-interface PlayerAgent {
-    + chooseAction(gameState: GameState, player: Player): CompletableFuture<GameAction>
-}
-
-class HumanPlayerAgent {
-    - pendingAction: CompletableFuture<GameAction>
-    + chooseAction(gameState: GameState, player: Player): CompletableFuture<GameAction>
-    + submitAction(action: GameAction): void
-    + cancelAction(): void
-}
-
-class CPUPlayerAgent
-
-class GameController {
+  class GameController {
     - gameState: GameState
     - nextUnitId: int
     - nextCardId: int
@@ -53,25 +21,99 @@ class GameController {
     + submitAction(player: Player, action: GameAction): void
     - executeAction(action: GameAction): void
     - checkGameOver(): boolean
-    - generateUnitId(): int
-    - generateCardId(): int
+  }
+
 }
 
-class EffectContext {
+package "com.cardchess.model" {
+
+  ' Game State
+
+  together {
+    class GameState {
+      - board: Board
+      - players: List<Player>
+      - currentPlayer: Player
+      - turnNumber: int
+    }
+
+    class Player {
+      - agent: PlayerAgent
+    }
+  }
+
+  ' Actions
+
+  together {
+    interface GameAction
+
+    class MoveUnitAction {
+      - unit: UnitInstance
+      - destination: Position
+      + MoveUnitAction(unit: UnitInstance, destination: Position)
+    }
+
+    class AttackUnitAction {
+      - attacker: UnitInstance
+      - target: UnitInstance
+      - attack: Attack
+      + AttackUnitAction(attacker: UnitInstance, target: UnitInstance, attack: Attack)
+    }
+
+    class PlayCardAction {
+      - card: CardInstance
+      + PlayCardAction(card: CardInstance)
+    }
+
+    class DrawCardAction {
+      - amount: int
+      + DrawCardAction(amount: int)
+    }
+
+    class EndTurnAction {
+      + EndTurnAction()
+    }
+  }
+
+  ' Player Agents
+
+  together {
+    interface PlayerAgent {
+      + chooseAction(gameState: GameState, player: Player): CompletableFuture<GameAction>
+    }
+
+    class HumanPlayerAgent {
+      - pendingAction: CompletableFuture<GameAction>
+      + chooseAction(gameState: GameState, player: Player): CompletableFuture<GameAction>
+      + submitAction(action: GameAction): void
+      + cancelAction(): void
+    }
+
+    class CPUPlayerAgent
+  }
+
+  ' Effect Context
+
+  class EffectContext {
     - gameState: GameState
     - source: UnitInstance
     - targets: List<UnitInstance>
     - sourcePlayer: Player
-    + EffectContext(gameState: GameState, source: UnitInstance, targets: List<UnitInstance>)
-    + getGameState(): GameState
-    + getSource(): UnitInstance
-    + getTargets(): List<UnitInstance>
-    + getSourcePlayer(): Player
+  }
+
+  ' Supporting Types
+
+  class Board
+  class Position <<record>>
+  class UnitInstance
+  class CardInstance
+  class Attack
 }
 
-class Effect {
-    + apply(context: EffectContext): void
-}
+' Model Inheritance
+
+PlayerAgent <|.. HumanPlayerAgent
+PlayerAgent <|.. CPUPlayerAgent
 
 GameAction <|.. MoveUnitAction
 GameAction <|.. AttackUnitAction
@@ -79,19 +121,40 @@ GameAction <|.. PlayCardAction
 GameAction <|.. DrawCardAction
 GameAction <|.. EndTurnAction
 
-PlayerAgent <|.. HumanPlayerAgent
-PlayerAgent <|.. CPUPlayerAgent
+' Model Relationships
+
+' Game State and Board
+
+GameState "1" *-- "1" Board : board
+GameState "1" *-- "2" Player : players
+GameState "1" --> "1" Player : currentPlayer
+
+' Player Agents
 
 Player --> PlayerAgent : controlled by
 
+' Action Relationships
+
+MoveUnitAction --> UnitInstance
+MoveUnitAction --> Position
+
+AttackUnitAction --> UnitInstance : attacker / target
+AttackUnitAction --> Attack
+
+PlayCardAction --> CardInstance
+
+' Effect Context Relationships
+
+EffectContext --> GameState
+EffectContext --> UnitInstance
+EffectContext --> Player
+
+' Controller Relationships
+
+GameController --> GameLayout : coordinates
 GameController --> GameState : manages
 GameController --> Player : manages
 GameController ..> GameAction : executes
 GameController ..> EffectContext : creates
-
-Effect ..> EffectContext : uses
-EffectContext --> GameState
-EffectContext --> UnitInstance
-EffectContext --> Player
 
 @enduml
