@@ -1,0 +1,76 @@
+@startuml
+title Game Startup Process
+
+start
+
+:Initialize game startup;
+
+:Check for workbook updates;
+
+if (Updates available?) then (Yes)
+
+  :Request update decision from user;
+
+  if (User approves update?) then (Yes)
+
+    :Validate Excel workbook;
+
+    if (Workbook valid?) then (Yes)
+
+      :Convert Excel data to JSON;
+
+      if (Conversion successful?) then (Yes)
+
+        :Validate generated JSON;
+
+        if (JSON valid?) then (Yes)
+
+          :Replace existing JSON files;
+          :Update stored workbook version;
+
+        else (No)
+
+          :Report JSON validation errors;
+
+        endif
+
+      else (No)
+
+        :Report conversion errors;
+
+      endif
+
+    else (No)
+
+      :Report workbook validation errors;
+
+    endif
+
+  else (No)
+
+    :Continue with existing JSON;
+
+  endif
+
+else (No)
+
+  :Continue with existing JSON;
+
+endif
+
+:Load game data from JSON;
+
+if (Game data loaded successfully?) then (Yes)
+
+  :Initialize game;
+  :Notify startup complete;
+
+else (No)
+
+  :Report startup error;
+
+endif
+
+stop
+
+@enduml

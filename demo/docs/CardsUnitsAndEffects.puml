@@ -1,0 +1,186 @@
+@startuml
+title Cards, Units, and Effects
+
+left to right direction
+
+skinparam classAttributeIconSize 0
+skinparam packageStyle rectangle
+hide empty members
+
+package "com.cardchess.model" {
+
+  ' Cards and Card Instances
+
+  together {
+    abstract class Card {
+      - displayName: String
+      + createInstance(id: int): CardInstance
+    }
+
+    class CardInstance {
+      - id: int
+      - card: Card
+      - owner: Player
+    }
+
+    class UnitCard {
+      - unit: Unit
+    }
+
+    class AttackCard {
+      - attack: Attack
+    }
+
+    class SkillCard {
+      - skill: Skill
+    }
+  }
+
+  ' Units and Unit Instances
+
+  together {
+    class Unit {
+      - displayName: String
+      - maxHealth: int
+      - attacks: List<Attack>
+      - skills: List<Skill>
+      - ability: Ability
+      + createInstance(id: int): UnitInstance
+    }
+
+    class UnitInstance {
+      - id: int
+      - health: int
+      - position: Position
+      - owner: Player
+      - unit: Unit
+      + isAlive(): boolean
+      + takeDamage(damage: int): void
+      + heal(health: int): void
+    }
+  }
+
+  ' Attacks, Skills, and Abilities
+
+  together {
+    class Attack {
+      - displayName: String
+      - description: String
+      - targetType: TargetType
+      - effects: List<Effect>
+    }
+
+    class Skill {
+      - displayName: String
+      - description: String
+      - targetType: TargetType
+      - effects: List<Effect>
+    }
+
+    class Ability {
+      - displayName: String
+      - description: String
+      - targetType: TargetType
+      - effects: List<Effect>
+    }
+  }
+
+  ' Effects
+
+  together {
+    class Effect {
+      - type: EffectBehavior
+      - target: EffectTarget
+      - value: int
+      - unitTypeIds: List<String>
+    }
+
+    interface EffectBehavior {
+      + execute(effect: Effect, context: EffectContext): void
+      + generateDescription(effect: Effect): String
+    }
+
+    class DamageEffect
+    class HealEffect
+    class DrawCardEffect
+    class ApplyBurnEffect
+  }
+
+  ' Targeting
+
+  together {
+    enum TargetType {
+      SELECTED_TARGET
+      NO_TARGET
+    }
+
+    enum EffectTarget {
+      SELF
+      UNIT
+      ALL_UNITS
+      UNIT_OF_TYPE
+      ALL_UNITS_OF_TYPE
+      ALLY_UNIT
+      ALL_OTHER_ALLY_UNITS
+      ALL_ALLY_UNITS
+      ENEMY_UNIT
+      ALL_ENEMIES
+    }
+  }
+
+  class EffectContext {
+    - gameState: GameState
+    - source: UnitInstance
+    - selectedTargets: List<UnitInstance>
+    - sourcePlayer: Player
+  }
+}
+
+' Card Inheritance
+
+Card <|-- UnitCard
+Card <|-- AttackCard
+Card <|-- SkillCard
+
+' Card Relationships
+
+CardInstance --> Card : instance of
+UnitCard --> Unit : references
+AttackCard --> Attack : references
+SkillCard --> Skill : references
+
+' Unit Relationships
+
+UnitInstance --> Unit : instance of
+
+Unit "1" o-- "0..*" Attack
+Unit "1" o-- "0..*" Skill
+Unit "1" o-- "0..1" Ability
+
+' Effect Relationships
+
+Attack "1" --> "0..*" Effect : effects (ordered)
+Skill "1" --> "0..*" Effect : effects (ordered)
+Ability "1" --> "0..*" Effect : effects (ordered)
+
+Attack --> TargetType
+Skill --> TargetType
+Ability --> TargetType
+
+EffectBehavior <|.. DamageEffect
+EffectBehavior <|.. HealEffect
+EffectBehavior <|.. DrawCardEffect
+EffectBehavior <|.. ApplyBurnEffect
+
+Effect --> EffectBehavior : uses
+Effect --> EffectTarget
+Effect ..> EffectContext : uses
+
+' Effect Context Relationships
+
+EffectContext --> GameState : game state
+EffectContext --> UnitInstance : source
+EffectContext --> Player : source player
+EffectContext --> "0..*" UnitInstance : selected targets
+
+@enduml

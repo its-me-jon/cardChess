@@ -30,11 +30,9 @@ package "com.cardchess.view" {
   ' Card and Pile Views
 
   together {
-    class HandView {
-    }
+    class HandView
 
-    abstract class PileView {
-    }
+    abstract class PileView
 
     class DrawPileView {
       - cardCount: int
@@ -48,13 +46,13 @@ package "com.cardchess.view" {
       - card: CardInstance
     }
   }
+}
 
+package "com.cardchess.controller" {
+  class GameController
 }
 
 package "com.cardchess.model" {
-
-  ' Supporting Types
-
   class Player
   class Board
   class CardInstance
@@ -79,9 +77,14 @@ DiscardPileView "1" *-- "0..1" CardView
 
 ' View and Model Relationships
 
+PlayerArea --> Player : displays
 CardView --> CardInstance : displays
 HandView ..> Player : displays hand
 PileView ..> Player : displays pile
 BoardView ..> Board : displays
+
+' Controller Relationships
+
+GameController --> GameLayout : updates
 
 @enduml

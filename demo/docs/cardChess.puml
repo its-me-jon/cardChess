@@ -47,11 +47,23 @@ package "com.cardchess.view" {
     class CardView {
       - card: CardInstance
     }
+
+  }
+
+  ' Startup View
+
+  interface StartupView {
+    + requestDataUpdate(): CompletableFuture<Boolean>
+    + showUpdateError(errors: List<String>): void
+    + showStartupError(error: String): void
+    + showStartupComplete(): void
   }
 
 }
 
 package "com.cardchess.controller" {
+
+' Game Controller
 
   class GameController {
     - gameState: GameState
@@ -61,6 +73,16 @@ package "com.cardchess.controller" {
     + submitAction(player: Player, action: GameAction): void
     - executeAction(action: GameAction): void
     - checkGameOver(): boolean
+  }
+
+' Game Startup
+
+  class GameStartupCoordinator {
+    + initializeGame(): CompletableFuture<GameData>
+    - checkForDataUpdates(): CompletableFuture<Boolean>
+    - handleUpdateDecision(): CompletableFuture<Boolean>
+    - updateGameData(): CompletableFuture<Void>
+    - loadGameData(): CompletableFuture<GameData>
   }
 
 }
@@ -159,7 +181,7 @@ package "com.cardchess.model" {
   together {
     class DeckList {
       - cards: List<Card>
-      - MAX_SIZE: int = 30
+      {static} - MAX_SIZE: int = 30
     }
 
     abstract class Card {
@@ -217,37 +239,173 @@ package "com.cardchess.model" {
     class Attack {
       - displayName: String
       - description: String
-      - damage: int
+      - targetType: TargetType
       - effects: List<Effect>
     }
 
     class Skill {
       - displayName: String
       - description: String
+      - targetType: TargetType
       - effects: List<Effect>
     }
 
     class Ability {
       - displayName: String
       - description: String
+      - targetType: TargetType
       - effects: List<Effect>
     }
 
     class Effect {
-      - type: EffectType
+      - type: EffectBehavior
+      - target: EffectTarget
       - value: int
-      + apply(context: EffectContext): void
+      - unitTypeIds: List<String>
     }
 
     class EffectContext {
       - gameState: GameState
       - source: UnitInstance
-      - targets: List<UnitInstance>
+      - selectedTargets: List<UnitInstance>
       - sourcePlayer: Player
     }
+
+    enum TargetType {
+      SELECTED_TARGET
+      NO_TARGET
+    }
+
+    enum EffectTarget {
+      SELF
+      UNIT
+      ALL_UNITS
+      UNIT_OF_TYPE
+      ALL_UNITS_OF_TYPE
+      ALLY_UNIT
+      ALL_OTHER_ALLY_UNITS
+      ALL_ALLY_UNITS
+      ENEMY_UNIT
+      ALL_ENEMIES
+    }
+
+    interface EffectBehavior {
+      + execute(effect: Effect, context: EffectContext): void
+      + generateDescription(effect: Effect): String
+    }
+
+    class DamageEffect
+    class HealEffect
+    class DrawCardEffect
+    class ApplyBurnEffect
+
   }
 
 }
+
+package "com.cardchess.data" {
+
+  class GameData {
+    - effects: List<Effect>
+    - attacks: List<Attack>
+    - skills: List<Skill>
+    - abilities: List<Ability>
+    - cards: List<Card>
+    - units: List<Unit>
+  }
+  
+  class GameDataUpdateChecker {
+    + checkForUpdates(): CompletableFuture<Boolean>
+    - calculateFileHash(file: File): String
+  }
+
+  class ExcelToJsonConverter {
+    + convert(excelFile: File, outputDirectory: File): ConversionResult
+    - readWorkbook(file: File): Workbook
+    - generateJsonFiles(): void
+  }
+
+  class GameDataValidator {
+    + validateWorkbook(file: File): ValidationResult
+    + validateJson(directory: File): ValidationResult
+  }
+
+  class GameDataLoader {
+    + load(): GameData
+    - loadEffects(): List<Effect>
+    - loadAttacks(): List<Attack>
+    - loadSkills(): List<Skill>
+    - loadAbilities(): List<Ability>
+    - loadCards(): List<Card>
+    - loadUnits(): List<Unit>
+  }
+
+  class GameDataVersion {
+    - excelHash: String
+    - lastUpdated: LocalDateTime
+  }
+
+  class ValidationResult {
+    - valid: boolean
+    - errors: List<String>
+  }
+
+  class ConversionResult {
+    - successful: boolean
+    - errors: List<String>
+    + isSuccessful(): boolean
+    + getErrors(): List<String>
+  }
+
+  class EffectFactory {
+    + createEffect(data: JsonNode): Effect
+  }
+
+  class CardFactory {
+    + createCard(data: JsonNode): Card
+  }
+
+  class UnitFactory {
+    + createUnit(data: JsonNode): Unit
+  }
+
+}
+
+' Game Startup
+
+' See GameStartupProcess.puml for the startup workflow.
+
+' Game Startup Relationships
+
+GameDataUpdateChecker --> GameDataVersion : checks stored version
+GameStartupCoordinator ..> GameDataUpdateChecker : checks for updates
+GameStartupCoordinator ..> GameDataValidator : validates data
+GameStartupCoordinator ..> ExcelToJsonConverter : requests conversion
+ExcelToJsonConverter ..> ConversionResult : returns
+GameStartupCoordinator ..> GameDataLoader : loads game data
+GameStartupCoordinator ..> StartupView : communicates with
+
+' Game Data Conversion Relationships
+
+GameDataLoader ..> EffectFactory : uses
+GameDataLoader ..> CardFactory : uses
+GameDataLoader ..> UnitFactory : uses
+
+EffectFactory ..> Effect : creates
+CardFactory ..> Card : creates
+UnitFactory ..> Unit : creates
+
+GameDataLoader ..> GameData : creates
+GameStartupCoordinator ..> GameData : produces
+
+' Game Data Relationships
+
+GameData "1" o-- "0..*" Effect : effects
+GameData "1" o-- "0..*" Attack : attacks
+GameData "1" o-- "0..*" Skill : skills
+GameData "1" o-- "0..*" Ability : abilities
+GameData "1" o-- "0..*" Card : cards
+GameData "1" o-- "0..*" Unit : units
 
 ' Model Inheritance
 
@@ -269,14 +427,14 @@ GameAction <|.. EndTurnAction
 ' Game State and Board
 
 GameState "1" *-- "1" Board : board
-GameState "1" *-- "2" Player : players
+GameState "1" *-- "2..*" Player : players
 GameState "1" --> "1" Player : currentPlayer
 
 Player "1" *-- "1" DeckList : deckList
 Player "1" *-- "0..*" CardInstance : owns
 Player "1" *-- "0..*" UnitInstance : owns
 
-Board "0..1" -- "0..*" UnitInstance : contains
+Board "1" -- "0..*" UnitInstance : contains
 
 ' Player Agents
 
@@ -300,20 +458,35 @@ Unit "1" o-- "0..*" Attack
 Unit "1" o-- "0..*" Skill
 Unit "1" o-- "0..1" Ability
 
-Attack "1" *-- "0..*" Effect
-Skill "1" *-- "0..*" Effect
-Ability "1" *-- "0..*" Effect
+Attack "1" --> "0..*" Effect : effects (ordered)
+Skill "1" --> "0..*" Effect : effects (ordered)
+Ability "1" --> "0..*" Effect : effects (ordered)
+
+Attack --> TargetType
+Skill --> TargetType
+Ability --> TargetType
+
+EffectBehavior <|.. DamageEffect
+EffectBehavior <|.. HealEffect
+EffectBehavior <|.. DrawCardEffect
+EffectBehavior <|.. ApplyBurnEffect
+
+Effect --> EffectBehavior : uses
+Effect --> EffectTarget
 
 Effect ..> EffectContext : uses
 
-EffectContext --> GameState
-EffectContext --> UnitInstance
-EffectContext --> Player
+EffectContext --> GameState : game state
+EffectContext --> UnitInstance : source
+EffectContext --> Player : source player
+EffectContext --> "0..*" UnitInstance : selected targets
 
 ' View Inheritance
 
 DrawPileView --|> PileView
 DiscardPileView --|> PileView
+
+GameStartupCoordinator ..> StartupView : communicates with
 
 ' View Composition
 
@@ -329,6 +502,7 @@ DiscardPileView "1" *-- "0..1" CardView
 
 ' View and Model Relationships
 
+PlayerArea --> Player : displays
 CardView --> CardInstance : displays
 HandView ..> Player : displays hand
 PileView ..> Player : displays pile
@@ -338,7 +512,7 @@ BoardView ..> Board : displays
 
 GameController --> GameState : manages
 GameController --> Player : manages
-GameController --> GameLayout : coordinates
+GameController --> GameLayout : updates
 GameController ..> GameAction : executes
 GameController ..> EffectContext : creates
 

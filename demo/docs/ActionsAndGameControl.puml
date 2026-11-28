@@ -7,11 +7,9 @@ skinparam classAttributeIconSize 0
 skinparam packageStyle rectangle
 hide empty members
 
-package "com.cardchess.view" {
-    class GameLayout
-}
-
 package "com.cardchess.controller" {
+
+  ' Game Controller
 
   class GameController {
     - gameState: GameState
@@ -22,25 +20,9 @@ package "com.cardchess.controller" {
     - executeAction(action: GameAction): void
     - checkGameOver(): boolean
   }
-
 }
 
 package "com.cardchess.model" {
-
-  ' Game State
-
-  together {
-    class GameState {
-      - board: Board
-      - players: List<Player>
-      - currentPlayer: Player
-      - turnNumber: int
-    }
-
-    class Player {
-      - agent: PlayerAgent
-    }
-  }
 
   ' Actions
 
@@ -92,28 +74,17 @@ package "com.cardchess.model" {
     class CPUPlayerAgent
   }
 
-  ' Effect Context
+  ' Effect Resolution Context
 
   class EffectContext {
     - gameState: GameState
     - source: UnitInstance
-    - targets: List<UnitInstance>
+    - selectedTargets: List<UnitInstance>
     - sourcePlayer: Player
   }
-
-  ' Supporting Types
-
-  class Board
-  class Position <<record>>
-  class UnitInstance
-  class CardInstance
-  class Attack
 }
 
-' Model Inheritance
-
-PlayerAgent <|.. HumanPlayerAgent
-PlayerAgent <|.. CPUPlayerAgent
+' Action Inheritance
 
 GameAction <|.. MoveUnitAction
 GameAction <|.. AttackUnitAction
@@ -121,17 +92,17 @@ GameAction <|.. PlayCardAction
 GameAction <|.. DrawCardAction
 GameAction <|.. EndTurnAction
 
-' Model Relationships
+' Agent Inheritance
 
-' Game State and Board
+PlayerAgent <|.. HumanPlayerAgent
+PlayerAgent <|.. CPUPlayerAgent
 
-GameState "1" *-- "1" Board : board
-GameState "1" *-- "2" Player : players
-GameState "1" --> "1" Player : currentPlayer
+' Controller Relationships
 
-' Player Agents
-
-Player --> PlayerAgent : controlled by
+GameController --> GameState : manages
+GameController --> Player : manages
+GameController ..> GameAction : executes
+GameController ..> EffectContext : creates
 
 ' Action Relationships
 
@@ -143,18 +114,10 @@ AttackUnitAction --> Attack
 
 PlayCardAction --> CardInstance
 
-' Effect Context Relationships
+' Agent Relationships
 
-EffectContext --> GameState
-EffectContext --> UnitInstance
-EffectContext --> Player
-
-' Controller Relationships
-
-GameController --> GameLayout : coordinates
-GameController --> GameState : manages
-GameController --> Player : manages
-GameController ..> GameAction : executes
-GameController ..> EffectContext : creates
+Player --> PlayerAgent : controlled by
+PlayerAgent ..> GameState : evaluates
+PlayerAgent ..> Player : evaluates
 
 @enduml

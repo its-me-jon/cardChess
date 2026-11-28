@@ -9,7 +9,7 @@ hide empty members
 
 package "com.cardchess.model" {
 
-  ' Game State and Board
+  ' Game State and Players
 
   together {
     class GameState {
@@ -28,6 +28,15 @@ package "com.cardchess.model" {
       - agent: PlayerAgent
     }
 
+    class DeckList {
+      - cards: List<Card>
+      {static} - MAX_SIZE: int = 30
+    }
+  }
+
+  ' Board and Positions
+
+  together {
     class Board {
       - rows: int
       - columns: int
@@ -46,54 +55,51 @@ package "com.cardchess.model" {
     }
   }
 
-  ' Player Agents
+  ' Runtime Instances
 
   together {
-    interface PlayerAgent {
-      + chooseAction(gameState: GameState, player: Player): CompletableFuture<GameAction>
+    class CardInstance {
+      - id: int
+      - card: Card
+      - owner: Player
     }
 
-    class HumanPlayerAgent {
-      - pendingAction: CompletableFuture<GameAction>
-      + chooseAction(gameState: GameState, player: Player): CompletableFuture<GameAction>
-      + submitAction(action: GameAction): void
-      + cancelAction(): void
+    class UnitInstance {
+      - id: int
+      - health: int
+      - position: Position
+      - owner: Player
+      - unit: Unit
+      + isAlive(): boolean
+      + takeDamage(damage: int): void
+      + heal(health: int): void
     }
-
-    class CPUPlayerAgent
   }
 
-  ' Supporting Types
+  ' Player Agents
 
-  class DeckList
-  class CardInstance
-  class UnitInstance
-  interface GameAction
+  interface PlayerAgent
 }
 
-' Model Inheritance
-
-PlayerAgent <|.. HumanPlayerAgent
-PlayerAgent <|.. CPUPlayerAgent
-
-' Model Relationships
-
-' Game State and Board
+' Game State Relationships
 
 GameState "1" *-- "1" Board : board
-GameState "1" *-- "2" Player : players
+GameState "1" *-- "2..*" Player : players
 GameState "1" --> "1" Player : currentPlayer
-
-Board "0..1" -- "0..*" UnitInstance : contains
-
-' Player Relationships
 
 Player "1" *-- "1" DeckList : deckList
 Player "1" *-- "0..*" CardInstance : owns
 Player "1" *-- "0..*" UnitInstance : owns
 
-' Player Agents
-
 Player --> PlayerAgent : controlled by
+
+' Board Relationships
+
+Board "1" -- "0..*" UnitInstance : contains
+
+CardInstance "0..*" --> "1" Card : instance of
+UnitInstance "0..*" --> "1" Unit : instance of
+
+DeckList "1" o-- "0..30" Card : definitions
 
 @enduml
